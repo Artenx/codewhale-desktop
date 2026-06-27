@@ -94,8 +94,8 @@ struct AppState {
 }
 
 #[tauri::command]
-async fn get_config(state: State<'_, AppState>) -> AppConfig {
-    state.config.lock().await.clone()
+async fn get_config(state: State<'_, AppState>) -> Result<AppConfig, String> {
+    Ok(state.config.lock().await.clone())
 }
 
 #[tauri::command]
