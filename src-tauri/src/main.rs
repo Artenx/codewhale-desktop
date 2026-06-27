@@ -1,7 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use serde::{Deserialize, Serialize};
-use std::sync::Mutex;
+use tokio::sync::Mutex;
 use tauri::State;
 
 mod engine;
@@ -117,18 +117,18 @@ struct AppState {
 
 #[tauri::command]
 fn get_config(state: State<AppState>) -> AppConfig {
-    state.config.lock().unwrap().clone()
+    state.config.lock().await.clone()
 }
 
 #[tauri::command]
 fn save_config(state: State<AppState>, config: AppConfig) -> Result<(), String> {
-    *state.config.lock().unwrap() = config;
+    *state.config.lock().await = config;
     Ok(())
 }
 
 #[tauri::command]
 fn update_provider(state: State<AppState>, provider: ProviderConfig) -> Result<(), String> {
-    let mut config = state.config.lock().unwrap();
+    let mut config = state.config.lock().await;
     if let Some(p) = config.providers.iter_mut().find(|p| p.name == provider.name) {
         *p = provider;
     } else {
@@ -139,7 +139,7 @@ fn update_provider(state: State<AppState>, provider: ProviderConfig) -> Result<(
 
 #[tauri::command]
 fn set_current_model(state: State<AppState>, provider: String, model: String) -> Result<(), String> {
-    let mut config = state.config.lock().unwrap();
+    let mut config = state.config.lock().await;
     config.current_provider = provider;
     config.current_model = model;
     Ok(())
@@ -147,28 +147,28 @@ fn set_current_model(state: State<AppState>, provider: String, model: String) ->
 
 #[tauri::command]
 fn add_mcp_server(state: State<AppState>, server: McpServerConfig) -> Result<(), String> {
-    let mut config = state.config.lock().unwrap();
+    let mut config = state.config.lock().await;
     config.mcp_servers.push(server);
     Ok(())
 }
 
 #[tauri::command]
 fn remove_mcp_server(state: State<AppState>, name: String) -> Result<(), String> {
-    let mut config = state.config.lock().unwrap();
+    let mut config = state.config.lock().await;
     config.mcp_servers.retain(|s| s.name != name);
     Ok(())
 }
 
 #[tauri::command]
 fn add_hook(state: State<AppState>, hook: HookConfig) -> Result<(), String> {
-    let mut config = state.config.lock().unwrap();
+    let mut config = state.config.lock().await;
     config.hooks.push(hook);
     Ok(())
 }
 
 #[tauri::command]
 fn remove_hook(state: State<AppState>, index: usize) -> Result<(), String> {
-    let mut config = state.config.lock().unwrap();
+    let mut config = state.config.lock().await;
     if index < config.hooks.len() {
         config.hooks.remove(index);
     }
@@ -181,8 +181,8 @@ async fn send_message(
     message: String,
     thread_id: Option<String>,
 ) -> Result<String, String> {
-    let config = state.config.lock().unwrap().clone();
-    let engine = state.engine.lock().unwrap();
+    let config = state.config.lock().await.clone();
+    let engine = state.engine.lock().await;
     if let Some(ref eng) = *engine {
         eng.send_message(&message, thread_id.as_deref(), &config).await
             .map_err(|e| e.to_string())
@@ -193,8 +193,8 @@ async fn send_message(
 
 #[tauri::command]
 async fn start_engine(state: State<'_, AppState>) -> Result<(), String> {
-    let config = state.config.lock().unwrap().clone();
-    let mut engine = state.engine.lock().unwrap();
+    let config = state.config.lock().await.clone();
+    let mut engine = state.engine.lock().await;
     if engine.is_none() {
         let handle = EngineHandle::start(&config).await.map_err(|e| e.to_string())?;
         *engine = Some(handle);
@@ -204,7 +204,7 @@ async fn start_engine(state: State<'_, AppState>) -> Result<(), String> {
 
 #[tauri::command]
 async fn stop_engine(state: State<'_, AppState>) -> Result<(), String> {
-    let mut engine = state.engine.lock().unwrap();
+    let mut engine = state.engine.lock().await;
     *engine = None;
     Ok(())
 }
@@ -215,7 +215,7 @@ async fn exec_tool(
     tool_name: String,
     args: serde_json::Value,
 ) -> Result<serde_json::Value, String> {
-    let engine = state.engine.lock().unwrap();
+    let engine = state.engine.lock().await;
     if let Some(ref eng) = *engine {
         eng.exec_tool(&tool_name, args).await.map_err(|e| e.to_string())
     } else {
