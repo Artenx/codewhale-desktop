@@ -162,7 +162,7 @@ async fn send_message(
         eng.send_message(&message, thread_id.as_deref(), &config).await
             .map_err(|e| e.to_string())
     } else {
-        Err("引擎未初始化".into())
+        Err("Engine not started".into())
     }
 }
 
@@ -193,7 +193,7 @@ async fn exec_tool(
     if let Some(ref eng) = *engine_guard {
         eng.exec_tool(&tool_name, args).await.map_err(|e| e.to_string())
     } else {
-        Err("引擎未初始化".into())
+        Err("Engine not started".into())
     }
 }
 
@@ -205,9 +205,6 @@ fn list_tools() -> Vec<serde_json::Value> {
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_store::Builder::default().build())
-        .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_fs::init())
         .manage(AppState {
             config: Mutex::new(AppConfig::default()),
             engine: Mutex::new(None),

@@ -1,12 +1,9 @@
 //! CodeWhale engine bridge — connects to codewhale Runtime API or spawns codewhale process.
 
 use anyhow::{Context, Result};
-use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::process::Stdio;
-use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::{Child, Command};
-use tokio::sync::mpsc;
 
 use crate::AppConfig;
 
@@ -20,9 +17,9 @@ pub struct EngineHandle {
 impl EngineHandle {
     pub async fn start(config: &AppConfig) -> Result<Self> {
         let client = reqwest::Client::new();
-
-        // Try to connect to an existing codewhale serve instance
         let api_base = "http://127.0.0.1:18789".to_string();
+
+        // Try connecting to existing codewhale serve
         if client.get(format!("{}/health", api_base)).send().await.is_ok() {
             return Ok(Self {
                 process: spawn_noop_child(),
@@ -43,7 +40,6 @@ impl EngineHandle {
             .stderr(Stdio::piped())
             .stdin(Stdio::null());
 
-        // Set provider environment
         if let Some(provider) = config.providers.iter().find(|p| p.name == config.current_provider && p.enabled) {
             if !provider.api_key.is_empty() {
                 let env_key = match provider.kind.as_str() {
@@ -61,8 +57,6 @@ impl EngineHandle {
         }
 
         let process = cmd.spawn().context("Failed to spawn codewhale serve")?;
-
-        // Wait for server to be ready
         tokio::time::sleep(std::time::Duration::from_secs(2)).await;
 
         Ok(Self {
