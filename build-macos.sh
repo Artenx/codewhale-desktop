@@ -53,29 +53,69 @@ npm run build
 echo "  ✅ 前端构建完成"
 echo ""
 
-# ── 4. 生成 macOS 图标 ──
-echo "▸ 生成 .icns 图标..."
-ICONSET=src-tauri/icons/icon.iconset
-mkdir -p "$ICONSET"
-for size in 16 32 64 128 256 512; do
-  sips -z $size $size src-tauri/icons/256x256.png --out "$ICONSET/icon_${size}x${size}.png" >/dev/null
-  if [ $size -le 256 ]; then
-    sips -z $((size*2)) $((size*2)) src-tauri/icons/256x256.png --out "$ICONSET/icon_${size}x${size}@2x.png" >/dev/null 2>&1 || true
+# ── 4. 准备图标 ──
+echo "▸ 准备应用图标..."
+cd ..
+
+# 检查是否已有有效 .icns（比如用户自己放了一个）
+if file src-tauri/icons/icon.icns 2>/dev/null | grep -q "Mac OS X icon"; then
+  echo "  ✅ 已有有效 .icns 图标"
+else
+  # 尝试用 macOS 工具从源码 logo 生成 .icns
+  if command -v sips &>/dev/null && command -v iconutil &>/dev/null; then
+    # 优先用项目自带的 SVG 转 PNG
+    SVG_SRC="frontend/public/whale.svg"
+    ICONSET=src-tauri/icons.iconset
+    rm -rf "$ICONSET" src-tauri/icons/icon.icns 2>/dev/null
+    mkdir -p "$ICONSET"
+
+    SUCCESS=true
+    for size in 16 32 128 256 512; do
+      sips -s format png -z $size $size "$SVG_SRC" --out "$ICONSET/icon_${size}x${size}.png" >/dev/null 2>&1 || SUCCESS=false
+      if [ "$SUCCESS" = "false" ]; then break; fi
+      if [ $size -le 256 ]; then
+        double=$((size * 2))
+        sips -s format png -z $double $double "$SVG_SRC" --out "$ICONSET/icon_${size}x${size}@2x.png" >/dev/null 2>&1 || true
+      fi
+    done
+
+    if [ "$SUCCESS" = "true" ] && [ -f "$ICONSET/icon_16x16.png" ]; then
+      iconutil -c icns "$ICONSET" -o src-tauri/icons/icon.icns 2>/dev/null || SUCCESS=false
+      rm -rf "$ICONSET"
+    fi
+
+    if [ "$SUCCESS" = "true" ] && [ -f src-tauri/icons/icon.icns ]; then
+      echo "  ✅ .icns 图标已生成"
+    else
+      echo "  ⚠ 图标生成跳过（Tauri 将使用默认图标）"
+      rm -rf "$ICONSET" src-tauri/icons/icon.icns 2>/dev/null
+    fi
+  else
+    echo "  ⚠ sips/iconutil 不可用，跳过图标生成"
+    rm -f src-tauri/icons/icon.icns 2>/dev/null
+  fi
+fi
+
+# 移除无效的占位图标文件（避免 Tauri 报错）
+for f in src-tauri/icons/*.png src-tauri/icons/*.icns src-tauri/icons/*.ico; do
+  if [ -f "$f" ]; then
+    # 检查文件是否有效（至少 100 bytes）
+    size=$(wc -c < "$f" 2>/dev/null || echo 0)
+    if [ "$size" -lt 100 ]; then
+      echo "  ⚠ 移除无效图标: $f"
+      rm -f "$f"
+    fi
   fi
 done
-sips -z 512 512 src-tauri/icons/256x256.png --out "$ICONSET/icon_256x256@2x.png" >/dev/null 2>&1 || true
-iconutil -c icns "$ICONSET" -o src-tauri/icons/icon.icns
-rm -rf "$ICONSET"
-echo "  ✅ .icns 图标生成完成"
+
 echo ""
 
 # ── 5. 构建 Tauri macOS 应用 ──
 echo "▸ 构建 Tauri macOS 应用 (Intel x86_64)..."
-cd ..
 npm run tauri build -- --target x86_64-apple-darwin
 echo ""
 
-# ── 5. 输出路径 ──
+# ── 6. 输出路径 ──
 echo "╔══════════════════════════════════════════════════╗"
 echo "║  ✅ 构建完成!                                    ║"
 echo "╚══════════════════════════════════════════════════╝"
@@ -87,5 +127,5 @@ echo ""
 echo "安装方式:"
 echo "  1. 打开 .dmg 文件"
 echo "  2. 拖拽 CodeWhale Desktop 到 Applications"
-echo "  3. 首次打开需要: 系统偏好设置 → 安全性与隐私 → 仍要打开"
+echo "  3. 首次打开: 右键 → 打开（绕过 Gatekeeper）"
 echo ""
