@@ -7,8 +7,7 @@
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "npm run build",
-    "frontendDist": "../frontend/dist",
-    "target": "x86_64-apple-darwin"
+    "frontendDist": "../frontend/dist"
   },
   "app": {
     "withGlobalTauri": true,
@@ -23,9 +22,7 @@
         "fullscreen": false,
         "decorations": true,
         "transparent": false,
-        "center": true,
-        "titleBarStyle": "Overlay",
-        "hiddenTitle": true
+        "center": true
       }
     ],
     "security": {
@@ -43,31 +40,15 @@
       "icons/icon.ico"
     ],
     "macOS": {
-      "minimumSystemVersion": "12.4",
-      "entitlements": null,
-      "exceptionDomain": "",
-      "signingIdentity": null
-    },
-    "dmg": {
-      "appPosition": { "x": 180, "y": 170 },
-      "applicationFolderPosition": { "x": 480, "y": 170 },
-      "windowSize": { "width": 660, "height": 400 }
+      "minimumSystemVersion": "12.4"
     }
   },
   "plugins": {
     "shell": {
       "open": true,
       "scope": [
-        {
-          "name": "codewhale",
-          "cmd": "codewhale",
-          "args": true
-        },
-        {
-          "name": "node",
-          "cmd": "node",
-          "args": true
-        }
+        { "name": "codewhale", "cmd": "codewhale", "args": true },
+        { "name": "node", "cmd": "node", "args": true }
       ]
     }
   }
