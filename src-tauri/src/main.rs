@@ -54,58 +54,36 @@ impl Default for AppConfig {
         Self {
             providers: vec![
                 ProviderConfig {
-                    name: "deepseek".into(),
-                    kind: "deepseek".into(),
-                    api_key: String::new(),
-                    base_url: "https://api.deepseek.com".into(),
-                    models: vec!["deepseek-chat".into(), "deepseek-reasoner".into()],
-                    enabled: true,
+                    name: "deepseek".into(), kind: "deepseek".into(),
+                    api_key: String::new(), base_url: "https://api.deepseek.com".into(),
+                    models: vec!["deepseek-chat".into(), "deepseek-reasoner".into()], enabled: true,
                 },
                 ProviderConfig {
-                    name: "openrouter".into(),
-                    kind: "openrouter".into(),
-                    api_key: String::new(),
-                    base_url: "https://openrouter.ai/api/v1".into(),
-                    models: vec!["deepseek/deepseek-chat".into()],
-                    enabled: false,
+                    name: "openrouter".into(), kind: "openrouter".into(),
+                    api_key: String::new(), base_url: "https://openrouter.ai/api/v1".into(),
+                    models: vec!["deepseek/deepseek-chat".into()], enabled: false,
                 },
                 ProviderConfig {
-                    name: "anthropic".into(),
-                    kind: "anthropic".into(),
-                    api_key: String::new(),
-                    base_url: "https://api.anthropic.com".into(),
-                    models: vec!["claude-sonnet-4-20250514".into(), "claude-3-5-haiku-20241022".into()],
-                    enabled: false,
+                    name: "anthropic".into(), kind: "anthropic".into(),
+                    api_key: String::new(), base_url: "https://api.anthropic.com".into(),
+                    models: vec!["claude-sonnet-4-20250514".into(), "claude-3-5-haiku-20241022".into()], enabled: false,
                 },
                 ProviderConfig {
-                    name: "openai".into(),
-                    kind: "openai".into(),
-                    api_key: String::new(),
-                    base_url: "https://api.openai.com/v1".into(),
-                    models: vec!["gpt-4o".into(), "gpt-4o-mini".into()],
-                    enabled: false,
+                    name: "openai".into(), kind: "openai".into(),
+                    api_key: String::new(), base_url: "https://api.openai.com/v1".into(),
+                    models: vec!["gpt-4o".into(), "gpt-4o-mini".into()], enabled: false,
                 },
                 ProviderConfig {
-                    name: "ollama".into(),
-                    kind: "ollama".into(),
-                    api_key: String::new(),
-                    base_url: "http://localhost:11434".into(),
-                    models: vec!["qwen2.5-coder:7b".into()],
-                    enabled: false,
+                    name: "ollama".into(), kind: "ollama".into(),
+                    api_key: String::new(), base_url: "http://localhost:11434".into(),
+                    models: vec!["qwen2.5-coder:7b".into()], enabled: false,
                 },
             ],
-            current_provider: "deepseek".into(),
-            current_model: "deepseek-chat".into(),
-            sandbox_enabled: true,
-            sandbox_type: "auto".into(),
-            auto_approve: false,
-            theme: "dark".into(),
-            locale: "zh-CN".into(),
-            max_turns: 100,
-            mcp_servers: vec![],
-            hooks: vec![],
-            skills_dir: "~/.codewhale/skills".into(),
-            workspace: ".".into(),
+            current_provider: "deepseek".into(), current_model: "deepseek-chat".into(),
+            sandbox_enabled: true, sandbox_type: "auto".into(), auto_approve: false,
+            theme: "dark".into(), locale: "zh-CN".into(), max_turns: 100,
+            mcp_servers: vec![], hooks: vec![],
+            skills_dir: "~/.codewhale/skills".into(), workspace: ".".into(),
         }
     }
 }
@@ -116,18 +94,18 @@ struct AppState {
 }
 
 #[tauri::command]
-fn get_config(state: State<AppState>) -> AppConfig {
+async fn get_config(state: State<'_, AppState>) -> AppConfig {
     state.config.lock().await.clone()
 }
 
 #[tauri::command]
-fn save_config(state: State<AppState>, config: AppConfig) -> Result<(), String> {
+async fn save_config(state: State<'_, AppState>, config: AppConfig) -> Result<(), String> {
     *state.config.lock().await = config;
     Ok(())
 }
 
 #[tauri::command]
-fn update_provider(state: State<AppState>, provider: ProviderConfig) -> Result<(), String> {
+async fn update_provider(state: State<'_, AppState>, provider: ProviderConfig) -> Result<(), String> {
     let mut config = state.config.lock().await;
     if let Some(p) = config.providers.iter_mut().find(|p| p.name == provider.name) {
         *p = provider;
@@ -138,7 +116,7 @@ fn update_provider(state: State<AppState>, provider: ProviderConfig) -> Result<(
 }
 
 #[tauri::command]
-fn set_current_model(state: State<AppState>, provider: String, model: String) -> Result<(), String> {
+async fn set_current_model(state: State<'_, AppState>, provider: String, model: String) -> Result<(), String> {
     let mut config = state.config.lock().await;
     config.current_provider = provider;
     config.current_model = model;
@@ -146,28 +124,25 @@ fn set_current_model(state: State<AppState>, provider: String, model: String) ->
 }
 
 #[tauri::command]
-fn add_mcp_server(state: State<AppState>, server: McpServerConfig) -> Result<(), String> {
-    let mut config = state.config.lock().await;
-    config.mcp_servers.push(server);
+async fn add_mcp_server(state: State<'_, AppState>, server: McpServerConfig) -> Result<(), String> {
+    state.config.lock().await.mcp_servers.push(server);
     Ok(())
 }
 
 #[tauri::command]
-fn remove_mcp_server(state: State<AppState>, name: String) -> Result<(), String> {
-    let mut config = state.config.lock().await;
-    config.mcp_servers.retain(|s| s.name != name);
+async fn remove_mcp_server(state: State<'_, AppState>, name: String) -> Result<(), String> {
+    state.config.lock().await.mcp_servers.retain(|s| s.name != name);
     Ok(())
 }
 
 #[tauri::command]
-fn add_hook(state: State<AppState>, hook: HookConfig) -> Result<(), String> {
-    let mut config = state.config.lock().await;
-    config.hooks.push(hook);
+async fn add_hook(state: State<'_, AppState>, hook: HookConfig) -> Result<(), String> {
+    state.config.lock().await.hooks.push(hook);
     Ok(())
 }
 
 #[tauri::command]
-fn remove_hook(state: State<AppState>, index: usize) -> Result<(), String> {
+async fn remove_hook(state: State<'_, AppState>, index: usize) -> Result<(), String> {
     let mut config = state.config.lock().await;
     if index < config.hooks.len() {
         config.hooks.remove(index);
@@ -182,8 +157,8 @@ async fn send_message(
     thread_id: Option<String>,
 ) -> Result<String, String> {
     let config = state.config.lock().await.clone();
-    let engine = state.engine.lock().await;
-    if let Some(ref eng) = *engine {
+    let engine_guard = state.engine.lock().await;
+    if let Some(ref eng) = *engine_guard {
         eng.send_message(&message, thread_id.as_deref(), &config).await
             .map_err(|e| e.to_string())
     } else {
@@ -204,8 +179,7 @@ async fn start_engine(state: State<'_, AppState>) -> Result<(), String> {
 
 #[tauri::command]
 async fn stop_engine(state: State<'_, AppState>) -> Result<(), String> {
-    let mut engine = state.engine.lock().await;
-    *engine = None;
+    *state.engine.lock().await = None;
     Ok(())
 }
 
@@ -215,8 +189,8 @@ async fn exec_tool(
     tool_name: String,
     args: serde_json::Value,
 ) -> Result<serde_json::Value, String> {
-    let engine = state.engine.lock().await;
-    if let Some(ref eng) = *engine {
+    let engine_guard = state.engine.lock().await;
+    if let Some(ref eng) = *engine_guard {
         eng.exec_tool(&tool_name, args).await.map_err(|e| e.to_string())
     } else {
         Err("引擎未初始化".into())
@@ -239,19 +213,9 @@ fn main() {
             engine: Mutex::new(None),
         })
         .invoke_handler(tauri::generate_handler![
-            get_config,
-            save_config,
-            update_provider,
-            set_current_model,
-            add_mcp_server,
-            remove_mcp_server,
-            add_hook,
-            remove_hook,
-            send_message,
-            start_engine,
-            stop_engine,
-            exec_tool,
-            list_tools,
+            get_config, save_config, update_provider, set_current_model,
+            add_mcp_server, remove_mcp_server, add_hook, remove_hook,
+            send_message, start_engine, stop_engine, exec_tool, list_tools,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run CodeWhale Desktop");
