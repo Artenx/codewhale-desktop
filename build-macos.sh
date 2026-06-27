@@ -111,6 +111,10 @@ done
 echo ""
 
 # ── 5. 构建 Tauri macOS 应用 ──
+echo "▸ 安装 Tauri CLI..."
+npm install
+echo ""
+
 echo "▸ 构建 Tauri macOS 应用 (Intel x86_64)..."
 npm run tauri build -- --target x86_64-apple-darwin
 echo ""
