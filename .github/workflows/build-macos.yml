@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-macos:
-    runs-on: macos-13  # Intel x86_64
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -40,7 +40,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: .
-          args: --target x86_64-apple-darwin
+          
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
