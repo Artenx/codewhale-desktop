@@ -1,0 +1,74 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicholasq/tauri-v2-schema/main/tauri-v2.schema.json",
+  "productName": "CodeWhale Desktop",
+  "version": "0.1.0",
+  "identifier": "net.codewhale.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../frontend/dist",
+    "target": "x86_64-apple-darwin"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "CodeWhale Desktop",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 960,
+        "minHeight": 600,
+        "resizable": true,
+        "fullscreen": false,
+        "decorations": true,
+        "transparent": false,
+        "center": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["dmg", "app"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "12.4",
+      "entitlements": null,
+      "exceptionDomain": "",
+      "signingIdentity": null
+    },
+    "dmg": {
+      "appPosition": { "x": 180, "y": 170 },
+      "applicationFolderPosition": { "x": 480, "y": 170 },
+      "windowSize": { "width": 660, "height": 400 }
+    }
+  },
+  "plugins": {
+    "shell": {
+      "open": true,
+      "scope": [
+        {
+          "name": "codewhale",
+          "cmd": "codewhale",
+          "args": true
+        },
+        {
+          "name": "node",
+          "cmd": "node",
+          "args": true
+        }
+      ]
+    }
+  }
+}
