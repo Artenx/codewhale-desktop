@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect } from "react";
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import {
-  MessageSquare, Settings, Plus, ChevronLeft, ChevronRight,
-  Zap, ZapOff, Folder, Hash, PanelLeftClose, PanelLeft,
+  Settings, Plus,
+  Zap, ZapOff, Folder, Hash, PanelLeft,
   CheckSquare, Wrench, Ship, Calendar, Camera, Layers,
 } from "lucide-react";
 import { useAppStore } from "./store";
@@ -16,6 +16,7 @@ import { ToolsPage } from "./pages/ToolsPage";
 import { AutomationsPage } from "./pages/AutomationsPage";
 import { SnapshotsPage } from "./pages/SnapshotsPage";
 import { WorkspacePage } from "./pages/WorkspacePage";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import clsx from "clsx";
 
 /* ─── Sidebar (Codex task-list style) ─── */
@@ -23,14 +24,14 @@ function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const {
-    sidebarOpen, toggleSidebar, engineRunning, setEngineRunning,
+    sidebarOpen, engineRunning, setEngineRunning,
     config, threads, currentThreadId, setCurrentThreadId, setError,
   } = useAppStore();
 
   const handleEngine = async () => {
     try {
-      engineRunning ? (await stopEngine(), setEngineRunning(false))
-                     : (await startEngine(), setEngineRunning(true));
+      if (engineRunning) { await stopEngine(); setEngineRunning(false); }
+      else { await startEngine(); setEngineRunning(true); }
     } catch (e: unknown) { setError(String(e)); }
   };
 
@@ -157,6 +158,11 @@ function Sidebar() {
 export default function App() {
   const sidebarOpen = useAppStore((s) => s.sidebarOpen);
   const toggleSidebar = useAppStore((s) => s.toggleSidebar);
+  const theme = useAppStore((s) => s.config.theme);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
 
   return (
     <div className="flex h-screen bg-ink text-ink-800 overflow-hidden">
@@ -177,19 +183,21 @@ export default function App() {
           </button>
         )}
 
-        <Routes>
-          <Route path="/" element={<Navigate to="/chat" replace />} />
-          <Route path="/chat" element={<ChatPage />} />
-          <Route path="/sessions" element={<SessionsPage />} />
-          <Route path="/tasks" element={<TasksPage />} />
-          <Route path="/tools" element={<ToolsPage />} />
-          <Route path="/fleet" element={<FleetPage />} />
-          <Route path="/workspace" element={<WorkspacePage />} />
-          <Route path="/automations" element={<AutomationsPage />} />
-          <Route path="/snapshots" element={<SnapshotsPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/settings/:tab" element={<SettingsPage />} />
-        </Routes>
+        <ErrorBoundary>
+          <Routes>
+            <Route path="/" element={<Navigate to="/chat" replace />} />
+            <Route path="/chat" element={<ChatPage />} />
+            <Route path="/sessions" element={<SessionsPage />} />
+            <Route path="/tasks" element={<TasksPage />} />
+            <Route path="/tools" element={<ToolsPage />} />
+            <Route path="/fleet" element={<FleetPage />} />
+            <Route path="/workspace" element={<WorkspacePage />} />
+            <Route path="/automations" element={<AutomationsPage />} />
+            <Route path="/snapshots" element={<SnapshotsPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/settings/:tab" element={<SettingsPage />} />
+          </Routes>
+        </ErrorBoundary>
       </main>
     </div>
   );

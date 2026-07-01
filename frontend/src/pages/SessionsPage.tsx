@@ -4,7 +4,6 @@ import {
   Layers,
   RefreshCw,
   GitFork,
-  Trash2,
   RotateCcw,
 } from "lucide-react";
 import { useAppStore } from "../store";
@@ -32,6 +31,7 @@ export function SessionsPage() {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleNewThread = async () => {
@@ -64,14 +64,14 @@ export function SessionsPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
-        <h2 className="text-lg font-semibold text-gray-100">会话管理</h2>
+      <div className="flex items-center justify-between px-6 py-4 border-b border-ink-200">
+        <h2 className="text-lg font-semibold text-ink-900">会话管理</h2>
         <div className="flex gap-2">
-          <button onClick={fetchData} className="btn-ghost text-sm flex items-center gap-1">
+          <button onClick={fetchData} className="cx-btn-ghost text-sm flex items-center gap-1">
             <RefreshCw className={clsx("w-3.5 h-3.5", loading && "animate-spin")} />
             刷新
           </button>
-          <button onClick={handleNewThread} className="btn-primary text-sm flex items-center gap-1.5">
+          <button onClick={handleNewThread} className="cx-btn-primary text-sm flex items-center gap-1.5">
             <Plus className="w-3.5 h-3.5" /> 新建线程
           </button>
         </div>
@@ -79,9 +79,9 @@ export function SessionsPage() {
 
       <div className="flex-1 overflow-y-auto px-6 py-4">
         {/* Threads */}
-        <h3 className="text-sm font-semibold text-gray-300 mb-3">线程</h3>
+        <h3 className="text-sm font-semibold text-ink-700 mb-3">线程</h3>
         {threads.length === 0 ? (
-          <div className="card text-center text-gray-500 text-sm py-8 mb-6">
+          <div className="cx-card p-4 text-center text-ink-500 text-sm mb-6">
             暂无线程
           </div>
         ) : (
@@ -90,37 +90,37 @@ export function SessionsPage() {
               <div
                 key={thread.id}
                 className={clsx(
-                  "card cursor-pointer transition-colors",
-                  currentThreadId === thread.id && "border-whale-600/40 bg-whale-600/5"
+                  "cx-card p-4 cursor-pointer transition-colors",
+                  currentThreadId === thread.id && "border-whale/40 bg-whale-muted/10"
                 )}
                 onClick={() => setCurrentThreadId(thread.id)}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <Layers className="w-4 h-4 text-gray-500" />
-                      <h4 className="text-sm font-medium text-gray-200 truncate">
+                      <Layers className="w-4 h-4 text-ink-500" />
+                      <h4 className="text-sm font-medium text-ink-800 truncate">
                         {thread.title || `线程 ${thread.id.slice(0, 8)}`}
                       </h4>
                       {currentThreadId === thread.id && (
-                        <span className="badge-green text-xs">当前</span>
+                        <span className="cx-badge-ok text-xs">当前</span>
                       )}
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-ink-500">
                       {thread.message_count} 条消息 · {thread.model} · {thread.status}
                     </div>
                   </div>
                   <div className="flex gap-1 ml-3">
                     <button
                       onClick={(e) => { e.stopPropagation(); handleFork(thread.id); }}
-                      className="btn-ghost p-1.5"
+                      className="cx-btn-ghost p-1.5"
                       title="分叉"
                     >
                       <GitFork className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleCompact(thread.id); }}
-                      className="btn-ghost p-1.5"
+                      className="cx-btn-ghost p-1.5"
                       title="压缩上下文"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
@@ -133,17 +133,17 @@ export function SessionsPage() {
         )}
 
         {/* Saved Sessions */}
-        <h3 className="text-sm font-semibold text-gray-300 mb-3">保存的会话</h3>
+        <h3 className="text-sm font-semibold text-ink-700 mb-3">保存的会话</h3>
         {sessions.length === 0 ? (
-          <div className="card text-center text-gray-500 text-sm py-8">
+          <div className="cx-card p-4 text-center text-ink-500 text-sm">
             暂无保存的会话
           </div>
         ) : (
           <div className="space-y-2">
             {(sessions as Array<{ id: string; title?: string; created_at?: string }>).map((session) => (
-              <div key={session.id} className="card">
-                <div className="text-sm text-gray-200">{session.title || session.id}</div>
-                <div className="text-xs text-gray-500 mt-1">{session.created_at}</div>
+              <div key={session.id} className="cx-card p-4">
+                <div className="text-sm text-ink-800">{session.title || session.id}</div>
+                <div className="text-xs text-ink-500 mt-1">{session.created_at}</div>
               </div>
             ))}
           </div>

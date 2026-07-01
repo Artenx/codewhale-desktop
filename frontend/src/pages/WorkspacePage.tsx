@@ -3,7 +3,6 @@ import {
   FolderOpen,
   GitBranch,
   RefreshCw,
-  Loader2,
   CheckCircle2,
   AlertCircle,
 } from "lucide-react";
@@ -31,50 +30,50 @@ export function WorkspacePage() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
-        <h2 className="text-lg font-semibold text-gray-100 flex items-center gap-2">
-          <FolderOpen className="w-5 h-5 text-whale-400" /> 工作区状态
+      <div className="flex items-center justify-between px-6 py-4 border-b border-ink-200">
+        <h2 className="text-lg font-semibold text-ink-900 flex items-center gap-2">
+          <FolderOpen className="w-5 h-5 text-whale-glow" /> 工作区状态
         </h2>
-        <button onClick={fetchData} className="btn-ghost text-sm flex items-center gap-1">
+        <button onClick={fetchData} className="cx-btn-ghost text-sm flex items-center gap-1">
           <RefreshCw className={clsx("w-3.5 h-3.5", loading && "animate-spin")} /> 刷新
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {/* Runtime Info */}
-        <div className="card">
-          <h3 className="section-title flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-green-400" /> 运行时信息
+        <div className="cx-card p-4">
+          <h3 className="text-sm font-semibold text-ink-800 mb-3 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-ok" /> 运行时信息
           </h3>
           {info ? (
             <div className="grid grid-cols-2 gap-3">
               {Object.entries(info).map(([key, value]) => (
                 <div key={key}>
-                  <span className="text-xs text-gray-500">{key}</span>
-                  <div className="text-sm text-gray-200 font-mono truncate">
+                  <span className="text-xs text-ink-500">{key}</span>
+                  <div className="text-sm text-ink-800 font-mono truncate">
                     {typeof value === "object" ? JSON.stringify(value) : String(value)}
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-500">无法获取运行时信息（引擎可能未启动）</p>
+            <p className="text-sm text-ink-500">无法获取运行时信息（引擎可能未启动）</p>
           )}
         </div>
 
         {/* Workspace Status */}
-        <div className="card">
-          <h3 className="section-title flex items-center gap-2">
-            <GitBranch className="w-4 h-4 text-whale-400" /> 工作区 Git 状态
+        <div className="cx-card p-4">
+          <h3 className="text-sm font-semibold text-ink-800 mb-3 flex items-center gap-2">
+            <GitBranch className="w-4 h-4 text-whale-glow" /> 工作区 Git 状态
           </h3>
           {status ? (
             <div className="space-y-3">
               {Object.entries(status).map(([key, value]) => (
                 <div key={key} className="flex items-start gap-3">
-                  <span className="text-xs text-gray-500 w-32 flex-shrink-0 pt-0.5">{key}</span>
-                  <div className="text-sm text-gray-200 font-mono break-all">
+                  <span className="text-xs text-ink-500 w-32 flex-shrink-0 pt-0.5">{key}</span>
+                  <div className="text-sm text-ink-800 font-mono break-all">
                     {typeof value === "object" ? (
-                      <pre className="text-xs bg-gray-900/50 rounded p-2 overflow-x-auto max-h-48">
+                      <pre className="text-xs bg-ink-50/50 rounded p-2 overflow-x-auto max-h-48">
                         {JSON.stringify(value, null, 2)}
                       </pre>
                     ) : (
@@ -85,7 +84,7 @@ export function WorkspacePage() {
               ))}
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-sm text-gray-500">
+            <div className="flex items-center gap-2 text-sm text-ink-500">
               <AlertCircle className="w-4 h-4" />
               无法获取工作区状态（引擎可能未启动）
             </div>

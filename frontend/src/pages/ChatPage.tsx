@@ -6,8 +6,10 @@ import {
 } from "lucide-react";
 import { useAppStore } from "../store";
 import { sendMessage } from "../api";
+import { runtimeApi } from "../api";
 import type { ChatMessage, ToolCall } from "../types";
 import clsx from "clsx";
+import ReactMarkdown from "react-markdown";
 
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -16,10 +18,10 @@ interface Attachment {
   id: string;
   name: string;
   size: number;
-  type: string;        // mime
-  content: string;     // text content or base64 data-url
+  type: string;
+  content: string;
   isImage: boolean;
-  preview?: string;    // data-url for images
+  preview?: string;
 }
 
 function fileIcon(name: string, isImage: boolean) {
@@ -92,7 +94,6 @@ function ToolCard({ tool }: { tool: ToolCall }) {
     approved:  { cls: "text-ok",   icon: CheckCircle2,  label: "approved" },
     denied:    { cls: "text-err",  icon: XCircle,       label: "denied" },
   }[tool.status] || { cls: "text-ink-500", icon: Wrench, label: tool.status };
-  const Icon = cfg.icon;
 
   return (
     <div className="my-1.5 border border-ink-200 rounded-md overflow-hidden animate-fade-in">
@@ -146,7 +147,6 @@ function Msg({ msg }: { msg: ChatMessage }) {
               💭 {msg.thinking}
             </div>
           )}
-          {/* Attachments in message */}
           {(msg as unknown as { attachments?: Attachment[] }).attachments?.map((att) => (
             <div key={att.id} className="mb-2">
               {att.isImage && att.preview ? (
@@ -160,7 +160,13 @@ function Msg({ msg }: { msg: ChatMessage }) {
               )}
             </div>
           ))}
-          <div className="whitespace-pre-wrap break-words md">{msg.content}</div>
+          {isUser ? (
+            <div className="whitespace-pre-wrap break-words">{msg.content}</div>
+          ) : (
+            <div className="break-words md">
+              <ReactMarkdown>{msg.content}</ReactMarkdown>
+            </div>
+          )}
           {msg.tool_calls?.map((t) => <ToolCard key={t.id} tool={t} />)}
         </div>
         <div className="text-2xs text-ink-500 mt-0.5 px-0.5 font-mono">
@@ -181,10 +187,11 @@ export function ChatPage() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<(() => void) | null>(null);
   const {
     messages, addMessage, updateMessage, clearMessages,
     isStreaming, setIsStreaming, config, engineRunning,
-    currentThreadId, setCurrentThreadId,
+    currentThreadId, setCurrentThreadId, setError,
   } = useAppStore();
 
   const scroll = useCallback(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), []);
@@ -195,7 +202,7 @@ export function ChatPage() {
   const addFiles = useCallback(async (files: FileList | File[]) => {
     const newAtts: Attachment[] = [];
     for (const f of Array.from(files)) {
-      if (f.size > 10 * 1024 * 1024) continue; // 10MB limit
+      if (f.size > 10 * 1024 * 1024) continue;
       try {
         newAtts.push(await readAsAttachment(f));
       } catch { /* skip unreadable */ }
@@ -205,7 +212,6 @@ export function ChatPage() {
 
   const removeAtt = (id: string) => setAttachments((prev) => prev.filter((a) => a.id !== id));
 
-  // Drag-and-drop handlers
   const onDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -223,7 +229,6 @@ export function ChatPage() {
     if (e.dataTransfer.files.length > 0) addFiles(e.dataTransfer.files);
   }, [addFiles]);
 
-  // Paste handler (images from clipboard)
   const onPaste = useCallback((e: React.ClipboardEvent) => {
     const items = e.clipboardData.items;
     const files: File[] = [];
@@ -247,7 +252,6 @@ export function ChatPage() {
       if (att.isImage) {
         parts.push(`[Image: ${att.name}]`);
       } else {
-        // Include file content with path hint for the agent
         parts.push(`\n\n--- File: ${att.name} (${formatSize(att.size)}) ---\n${att.content}`);
       }
     }
@@ -272,19 +276,91 @@ export function ChatPage() {
     addMessage({ id: aid, role: "assistant", content: "", timestamp: Date.now(), is_streaming: true });
     setIsStreaming(true);
 
-    try {
-      const resp = await sendMessage(msgContent, currentThreadId || undefined);
+    if (currentThreadId) {
+      let buffer = "";
+      const cancel = runtimeApi.streamTurn(
+        { message: msgContent, model: config.current_model, provider: config.current_provider, thread_id: currentThreadId },
+        (chunk: string) => {
+          buffer += chunk;
+          updateMessage(aid, { content: buffer });
+        },
+        () => {
+          updateMessage(aid, { is_streaming: false });
+          setIsStreaming(false);
+          abortRef.current = null;
+        },
+        (err: string) => {
+          updateMessage(aid, { content: buffer || `error: ${err}`, is_streaming: false });
+          setIsStreaming(false);
+          abortRef.current = null;
+        }
+      );
+      abortRef.current = cancel;
+    } else {
       try {
-        const p = JSON.parse(resp);
-        if (p.thread_id) setCurrentThreadId(p.thread_id);
-        updateMessage(aid, { content: p.content || p.message || resp, is_streaming: false });
-      } catch {
-        updateMessage(aid, { content: resp, is_streaming: false });
+        const resp = await sendMessage(msgContent, undefined);
+        try {
+          const p = JSON.parse(resp);
+          if (p.thread_id) setCurrentThreadId(p.thread_id);
+          updateMessage(aid, { content: p.content || p.message || resp, is_streaming: false });
+        } catch {
+          updateMessage(aid, { content: resp, is_streaming: false });
+        }
+      } catch (e: unknown) {
+        updateMessage(aid, { content: `error: ${String(e)}`, is_streaming: false });
+      } finally {
+        setIsStreaming(false);
+      }
+    }
+  };
+
+  const handleStop = () => {
+    if (abortRef.current) {
+      abortRef.current();
+      abortRef.current = null;
+    }
+    setIsStreaming(false);
+  };
+
+  const handleCompact = async () => {
+    if (!currentThreadId) return;
+    try {
+      await runtimeApi.compactThread(currentThreadId);
+    } catch (e: unknown) {
+      setError(String(e));
+    }
+  };
+
+  const handleFork = async () => {
+    if (!currentThreadId) return;
+    try {
+      const forked: { id: string } = await runtimeApi.forkThread(currentThreadId);
+      setCurrentThreadId(forked.id);
+      clearMessages();
+    } catch (e: unknown) {
+      setError(String(e));
+    }
+  };
+
+  const handleRetry = async () => {
+    if (!currentThreadId) return;
+    try {
+      await runtimeApi.retryThreadTurn(currentThreadId);
+      const thread = await runtimeApi.getThread(currentThreadId);
+      if (thread.messages) {
+        clearMessages();
+        for (const msg of thread.messages) {
+          addMessage({
+            id: msg.id || uid(),
+            role: msg.role,
+            content: msg.content || "",
+            timestamp: msg.timestamp ? Date.parse(msg.timestamp) : Date.now(),
+            tool_calls: msg.tool_calls,
+          });
+        }
       }
     } catch (e: unknown) {
-      updateMessage(aid, { content: `error: ${String(e)}`, is_streaming: false });
-    } finally {
-      setIsStreaming(false);
+      setError(String(e));
     }
   };
 
@@ -294,7 +370,6 @@ export function ChatPage() {
 
   return (
     <div className="flex flex-col h-full" ref={dropRef} onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}>
-      {/* Drag overlay */}
       {dragOver && (
         <div className="fixed inset-0 z-50 bg-ink/80 flex items-center justify-center pointer-events-none">
           <div className="cx-card px-8 py-6 border-whale/40 bg-ink-50/95 flex flex-col items-center gap-3">
@@ -320,9 +395,15 @@ export function ChatPage() {
         </div>
         <div className="flex items-center gap-1">
           <button onClick={clearMessages} className="cx-btn-ghost text-2xs font-mono" title="New">+ new</button>
-          <button className="cx-btn-ghost text-2xs font-mono" title="Compact"><Shrink className="w-3 h-3" /></button>
-          <button className="cx-btn-ghost text-2xs font-mono" title="Fork"><GitFork className="w-3 h-3" /></button>
-          <button className="cx-btn-ghost text-2xs font-mono" title="Retry"><RotateCcw className="w-3 h-3" /></button>
+          <button onClick={handleCompact} className="cx-btn-ghost text-2xs font-mono" title="Compact" disabled={!currentThreadId}>
+            <Shrink className="w-3 h-3" />
+          </button>
+          <button onClick={handleFork} className="cx-btn-ghost text-2xs font-mono" title="Fork" disabled={!currentThreadId}>
+            <GitFork className="w-3 h-3" />
+          </button>
+          <button onClick={handleRetry} className="cx-btn-ghost text-2xs font-mono" title="Retry" disabled={!currentThreadId}>
+            <RotateCcw className="w-3 h-3" />
+          </button>
         </div>
       </div>
 
@@ -350,7 +431,6 @@ export function ChatPage() {
 
       {/* Input area */}
       <div className="border-t border-ink-200 bg-ink px-4 py-3 flex-shrink-0">
-        {/* Attachment chips */}
         {attachments.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mb-2 pb-2 border-b border-ink-200/50">
             {attachments.map((att) => (
@@ -360,7 +440,6 @@ export function ChatPage() {
         )}
 
         <div className="flex items-end gap-2">
-          {/* Attach button */}
           <button
             onClick={() => fileRef.current?.click()}
             className="p-1.5 rounded-md text-ink-500 hover:text-ink-700 hover:bg-ink-100
@@ -377,7 +456,6 @@ export function ChatPage() {
             onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.target.value = ""; }}
           />
 
-          {/* Prompt */}
           <span className="text-ink-500 font-mono text-sm pb-2 select-none">❯</span>
           <textarea
             ref={inputRef}
@@ -397,8 +475,8 @@ export function ChatPage() {
             }}
           />
           <button
-            onClick={isStreaming ? undefined : send}
-            disabled={isStreaming || (!input.trim() && attachments.length === 0)}
+            onClick={isStreaming ? handleStop : send}
+            disabled={!isStreaming && !input.trim() && attachments.length === 0}
             className={clsx(
               "p-2 rounded-md transition-colors flex-shrink-0 mb-0.5",
               isStreaming

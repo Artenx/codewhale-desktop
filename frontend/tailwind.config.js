@@ -5,28 +5,25 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Codex-style monochrome palette
         ink: {
-          DEFAULT: "#0d0d0d",
-          50: "#1a1a1a",
-          100: "#212121",
-          200: "#2a2a2a",
-          300: "#333333",
-          400: "#444444",
-          500: "#666666",
-          600: "#888888",
-          700: "#aaaaaa",
-          800: "#cccccc",
-          900: "#e5e5e5",
+          DEFAULT: "rgb(var(--ink) / <alpha-value>)",
+          50: "rgb(var(--ink-50) / <alpha-value>)",
+          100: "rgb(var(--ink-100) / <alpha-value>)",
+          200: "rgb(var(--ink-200) / <alpha-value>)",
+          300: "rgb(var(--ink-300) / <alpha-value>)",
+          400: "rgb(var(--ink-400) / <alpha-value>)",
+          500: "rgb(var(--ink-500) / <alpha-value>)",
+          600: "rgb(var(--ink-600) / <alpha-value>)",
+          700: "rgb(var(--ink-700) / <alpha-value>)",
+          800: "rgb(var(--ink-800) / <alpha-value>)",
+          900: "rgb(var(--ink-900) / <alpha-value>)",
         },
-        // CodeWhale accent
         whale: {
           DEFAULT: "#2563eb",
           dim: "#1e40af",
           glow: "#3b82f6",
           muted: "#1e3a5f",
         },
-        // Semantic
         ok: "#22c55e",
         warn: "#eab308",
         err: "#ef4444",

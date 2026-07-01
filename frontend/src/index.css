@@ -2,6 +2,40 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ═══════════════════════════════════════════════════════════════
+   Dark theme (default) — RGB values for ink color palette
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  --ink: 13 13 13;
+  --ink-50: 26 26 26;
+  --ink-100: 33 33 33;
+  --ink-200: 42 42 42;
+  --ink-300: 51 51 51;
+  --ink-400: 68 68 68;
+  --ink-500: 102 102 102;
+  --ink-600: 136 136 136;
+  --ink-700: 170 170 170;
+  --ink-800: 204 204 204;
+  --ink-900: 229 229 229;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Light theme
+   ═══════════════════════════════════════════════════════════════ */
+[data-theme="light"] {
+  --ink: 255 255 255;
+  --ink-50: 249 250 251;
+  --ink-100: 243 244 246;
+  --ink-200: 229 231 235;
+  --ink-300: 209 213 219;
+  --ink-400: 156 163 175;
+  --ink-500: 107 114 128;
+  --ink-600: 75 85 99;
+  --ink-700: 55 65 81;
+  --ink-800: 31 41 55;
+  --ink-900: 17 24 39;
+}
+
 @layer base {
   * { @apply border-ink-300; }
 
@@ -21,10 +55,19 @@
   ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
 
   ::selection { background: rgba(37,99,235,0.3); }
+
+  [data-theme="light"] ::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.10);
+  }
+  [data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0,0,0,0.18);
+  }
+  [data-theme="light"] ::selection {
+    background: rgba(37,99,235,0.15);
+  }
 }
 
 @layer components {
-  /* Codex-style input */
   .cx-input {
     @apply w-full bg-ink-50 border border-ink-300 rounded-lg px-3 py-2
       text-ink-800 placeholder-ink-500 font-mono text-sm
@@ -32,7 +75,6 @@
       transition-colors;
   }
 
-  /* Codex-style button */
   .cx-btn {
     @apply px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-150
       active:scale-[0.97];
@@ -50,12 +92,10 @@
     @apply cx-btn bg-err/10 text-err border border-err/20 hover:bg-err/20;
   }
 
-  /* Card */
   .cx-card {
     @apply bg-ink-50 border border-ink-200 rounded-lg;
   }
 
-  /* Badge */
   .cx-badge {
     @apply inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-mono;
   }
@@ -65,7 +105,6 @@
   .cx-badge-live { @apply cx-badge bg-live/10 text-live border border-live/20; }
   .cx-badge-dim { @apply cx-badge bg-ink-100 text-ink-600 border border-ink-300; }
 
-  /* Terminal-style code block */
   .cx-code {
     @apply bg-ink font-mono text-sm text-ink-800 rounded-lg overflow-x-auto;
   }

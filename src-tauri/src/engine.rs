@@ -1,7 +1,7 @@
 //! CodeWhale engine bridge — connects to codewhale Runtime API or spawns codewhale process.
 
 use anyhow::{Context, Result};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::process::Stdio;
 use tokio::process::{Child, Command};
 
@@ -20,7 +20,12 @@ impl EngineHandle {
         let api_base = "http://127.0.0.1:18789".to_string();
 
         // Try connecting to existing codewhale serve
-        if client.get(format!("{}/health", api_base)).send().await.is_ok() {
+        if client
+            .get(format!("{}/health", api_base))
+            .send()
+            .await
+            .is_ok()
+        {
             return Ok(Self {
                 process: spawn_noop_child(),
                 api_base,
@@ -40,7 +45,11 @@ impl EngineHandle {
             .stderr(Stdio::piped())
             .stdin(Stdio::null());
 
-        if let Some(provider) = config.providers.iter().find(|p| p.name == config.current_provider && p.enabled) {
+        if let Some(provider) = config
+            .providers
+            .iter()
+            .find(|p| p.name == config.current_provider && p.enabled)
+        {
             if !provider.api_key.is_empty() {
                 let env_key = match provider.kind.as_str() {
                     "deepseek" => "DEEPSEEK_API_KEY",
@@ -67,7 +76,12 @@ impl EngineHandle {
         })
     }
 
-    pub async fn send_message(&self, message: &str, thread_id: Option<&str>, config: &AppConfig) -> Result<String> {
+    pub async fn send_message(
+        &self,
+        message: &str,
+        thread_id: Option<&str>,
+        config: &AppConfig,
+    ) -> Result<String> {
         let url = if let Some(tid) = thread_id {
             format!("{}/v1/threads/{}/turns", self.api_base, tid)
         } else {

@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Server, Puzzle, Cpu, GitBranch, Shield, Settings, Package,
-  Plus, Trash2, Save, Eye, EyeOff, Check, X, ChevronRight,
+  Plus, Trash2, Save, Eye, EyeOff, Check, ChevronRight,
   ToggleLeft, ToggleRight,
 } from "lucide-react";
 import { useAppStore } from "../store";
 import { saveConfig, updateProvider, addMcpServer, removeMcpServer, addHook, removeHook, setCurrentModel } from "../api";
+import { useDebounce } from "../components/useDebounce";
 import type { ProviderConfig, McpServerConfig, HookConfig } from "../types";
 import clsx from "clsx";
 
@@ -301,16 +302,22 @@ function McpTab() {
    Skills
    ═══════════════════════════════════════════════════════════════ */
 function SkillsTab() {
-  const { config, updateConfig } = useAppStore();
+  const { config } = useAppStore();
+  const [skillsDir, setSkillsDir] = useState(config.skills_dir);
+  const debouncedSkillsDir = useDebounce(skillsDir, 500);
+
+  useEffect(() => {
+    if (debouncedSkillsDir !== config.skills_dir) {
+      saveConfig({ ...config, skills_dir: debouncedSkillsDir });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSkillsDir]);
 
   return (
     <>
       <Section title="Skills Directory" desc="Skills are reusable workflow templates defined by SKILL.md files">
         <Field label="skills directory" hint="Each subdirectory with a SKILL.md file becomes a skill">
-          <input className="cx-input" value={config.skills_dir} onChange={(e) => {
-            updateConfig({ skills_dir: e.target.value });
-            saveConfig({ ...config, skills_dir: e.target.value });
-          }} />
+          <input className="cx-input" value={skillsDir} onChange={(e) => setSkillsDir(e.target.value)} />
         </Field>
       </Section>
 
@@ -518,13 +525,24 @@ function SandboxTab() {
    ═══════════════════════════════════════════════════════════════ */
 function GeneralTab() {
   const { config, updateConfig } = useAppStore();
+  const [workspace, setWorkspace] = useState(config.workspace);
+  const debouncedWorkspace = useDebounce(workspace, 500);
+
+  useEffect(() => {
+    if (debouncedWorkspace !== config.workspace) {
+      updateConfig({ workspace: debouncedWorkspace });
+      saveConfig({ ...config, workspace: debouncedWorkspace });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedWorkspace]);
+
   const set = (k: string, v: unknown) => { updateConfig({ [k]: v }); saveConfig({ ...config, [k]: v }); };
 
   return (
     <>
       <Section title="Workspace" desc="Default working directory and limits">
         <Field label="workspace directory">
-          <input className="cx-input" value={config.workspace} onChange={(e) => set("workspace", e.target.value)} />
+          <input className="cx-input" value={workspace} onChange={(e) => setWorkspace(e.target.value)} />
         </Field>
         <Field label="max turns per conversation">
           <input className="cx-input w-32" type="number" value={config.max_turns}
